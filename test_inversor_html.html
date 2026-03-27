@@ -49,8 +49,6 @@
 </div>
 
 <script>
-const SCRIPT_URL = "TU_GOOGLE_SCRIPT_URL_AQUI"; // <-- reemplazá esto
-
 const questions = [
   {
     text: "¿Cuál es tu principal objetivo al invertir?",
@@ -179,17 +177,7 @@ function showResult() {
     <div class="tags-label">Instrumentos recomendados</div>
     <div class="tags">${p.tags.map(t => `<span class="tag" style="background:${p.bgColor};color:${p.color}">${t}</span>`).join('')}</div>
     <button class="restart-btn" onclick="restart()">Volver a empezar</button>
-    <div class="saving" id="saving-msg">Guardando resultado...</div>
   `;
-  saveResult(p.name);
-}
-
-function saveResult(perfil) {
-  if (!SCRIPT_URL || SCRIPT_URL.includes("TU_GOOGLE")) return;
-  const params = new URLSearchParams({ perfil, fecha: new Date().toLocaleString('es-AR') });
-  fetch(`${SCRIPT_URL}?${params}`)
-    .then(() => { document.getElementById('saving-msg').textContent = "✓ Resultado guardado"; })
-    .catch(() => { document.getElementById('saving-msg').textContent = ""; });
 }
 
 function restart() {
