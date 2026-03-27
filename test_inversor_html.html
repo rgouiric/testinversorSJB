@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test de Perfil de Inversor</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 24px 16px; }
+  .card { background: #fff; border-radius: 16px; padding: 28px 22px; max-width: 480px; width: 100%; box-shadow: 0 2px 16px rgba(0,0,0,0.08); }
+  .logo { font-size: 13px; font-weight: 600; color: #534AB7; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 20px; }
+  .progress-bg { height: 6px; background: #EEEDFE; border-radius: 99px; margin-bottom: 6px; }
+  .progress-fill { height: 6px; background: #534AB7; border-radius: 99px; transition: width 0.4s ease; }
+  .q-counter { font-size: 12px; color: #888; margin-bottom: 16px; }
+  .q-text { font-size: 18px; font-weight: 600; color: #1a1a1a; margin-bottom: 20px; line-height: 1.4; }
+  .option-btn { display: block; width: 100%; text-align: left; background: #fff; border: 1.5px solid #e0e0e0; border-radius: 10px; padding: 13px 16px; margin-bottom: 10px; font-size: 15px; color: #333; cursor: pointer; transition: all 0.15s; -webkit-tap-highlight-color: transparent; }
+  .option-btn:active { background: #f0effe; }
+  .option-btn.selected { border-color: #534AB7; background: #EEEDFE; color: #3C3489; font-weight: 500; }
+  .next-btn { margin-top: 16px; width: 100%; padding: 14px; border-radius: 10px; background: #534AB7; color: #fff; font-size: 16px; font-weight: 600; border: none; cursor: pointer; transition: opacity 0.15s; }
+  .next-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .next-btn:active:not(:disabled) { opacity: 0.85; }
+  .result-icon { font-size: 52px; text-align: center; margin-bottom: 12px; }
+  .result-title { font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 4px; }
+  .result-sub { font-size: 13px; text-align: center; color: #888; margin-bottom: 16px; }
+  .divider { border: none; border-top: 1px solid #f0f0f0; margin: 16px 0; }
+  .result-desc { font-size: 15px; color: #444; line-height: 1.65; margin-bottom: 18px; }
+  .tags-label { font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+  .tag { font-size: 13px; padding: 5px 12px; border-radius: 99px; font-weight: 500; }
+  .restart-btn { width: 100%; padding: 12px; border-radius: 10px; background: transparent; color: #534AB7; font-size: 15px; font-weight: 500; border: 1.5px solid #534AB7; cursor: pointer; }
+  .saving { font-size: 13px; color: #888; text-align: center; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">Test de Inversor</div>
+
+  <!-- QUIZ -->
+  <div id="quiz-view">
+    <div class="progress-bg"><div class="progress-fill" id="progress" style="width:20%"></div></div>
+    <div class="q-counter" id="q-counter">Pregunta 1 de 5</div>
+    <div class="q-text" id="q-text"></div>
+    <div id="options-container"></div>
+    <button class="next-btn" id="next-btn" disabled onclick="nextQuestion()">Siguiente →</button>
+  </div>
+
+  <!-- RESULTADO -->
+  <div id="result-view" style="display:none"></div>
+</div>
+
+<script>
+const SCRIPT_URL = "TU_GOOGLE_SCRIPT_URL_AQUI"; // <-- reemplazá esto
+
+const questions = [
+  {
+    text: "¿Cuál es tu principal objetivo al invertir?",
+    options: [
+      { text: "Preservar mi capital, aunque gane poco", score: 1 },
+      { text: "Crecer moderadamente con algo de seguridad", score: 2 },
+      { text: "Maximizar ganancias aunque implique riesgos altos", score: 3 }
+    ]
+  },
+  {
+    text: "Si tu inversión cae un 20% en un mes, ¿qué harías?",
+    options: [
+      { text: "Retiro todo de inmediato para no perder más", score: 1 },
+      { text: "Espero con calma a que se recupere", score: 2 },
+      { text: "Aprovecho para invertir más a precio bajo", score: 3 }
+    ]
+  },
+  {
+    text: "¿Cuánto tiempo puedes mantener tu dinero invertido sin necesitarlo?",
+    options: [
+      { text: "Menos de 1 año", score: 1 },
+      { text: "Entre 1 y 5 años", score: 2 },
+      { text: "Más de 5 años", score: 3 }
+    ]
+  },
+  {
+    text: "¿Cuánto conoces sobre instrumentos de inversión?",
+    options: [
+      { text: "Muy poco, soy principiante", score: 1 },
+      { text: "Conozco lo básico", score: 2 },
+      { text: "Tengo buen conocimiento y experiencia", score: 3 }
+    ]
+  },
+  {
+    text: "¿Cómo describes tu actitud ante el riesgo financiero?",
+    options: [
+      { text: "Me genera mucha ansiedad, prefiero la seguridad", score: 1 },
+      { text: "Acepto cierto riesgo si el potencial es razonable", score: 2 },
+      { text: "Disfruto el riesgo, es parte de invertir", score: 3 }
+    ]
+  }
+];
+
+const profiles = [
+  {
+    min: 5, max: 8,
+    name: "Conservador",
+    emoji: "🛡️",
+    color: "#185FA5",
+    bgColor: "#E6F1FB",
+    sub: "Prioridad: seguridad y estabilidad",
+    desc: "Preferís proteger tu capital antes que asumir grandes riesgos. Buscás instrumentos seguros con retornos predecibles.",
+    tags: ["Depósitos a plazo", "Bonos del estado", "Fondos de renta fija", "Cuentas de ahorro"]
+  },
+  {
+    min: 9, max: 12,
+    name: "Moderado",
+    emoji: "⚖️",
+    color: "#0F6E56",
+    bgColor: "#E1F5EE",
+    sub: "Prioridad: equilibrio entre riesgo y rentabilidad",
+    desc: "Buscás un balance entre seguridad y crecimiento. Aceptás cierta volatilidad a cambio de mejores rendimientos.",
+    tags: ["Fondos mixtos", "Acciones de valor", "ETFs diversificados", "Bonos corporativos"]
+  },
+  {
+    min: 13, max: 15,
+    name: "Agresivo",
+    emoji: "🚀",
+    color: "#3C3489",
+    bgColor: "#EEEDFE",
+    sub: "Prioridad: máximo crecimiento a largo plazo",
+    desc: "Tenés apetito por el riesgo y buscás rendimientos altos. Tolerás pérdidas temporales para obtener grandes ganancias.",
+    tags: ["Acciones de crecimiento", "Criptomonedas", "Capital de riesgo", "Mercados emergentes"]
+  }
+];
+
+let current = 0, scores = [], selectedIdx = null;
+
+function renderQuestion() {
+  const q = questions[current];
+  document.getElementById('q-counter').textContent = `Pregunta ${current + 1} de ${questions.length}`;
+  document.getElementById('q-text').textContent = q.text;
+  document.getElementById('progress').style.width = `${((current + 1) / questions.length) * 100}%`;
+  const cont = document.getElementById('options-container');
+  cont.innerHTML = '';
+  selectedIdx = null;
+  document.getElementById('next-btn').disabled = true;
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = opt.text;
+    btn.onclick = () => {
+      selectedIdx = i;
+      document.querySelectorAll('.option-btn').forEach((b, idx) => {
+        b.className = idx === i ? 'option-btn selected' : 'option-btn';
+      });
+      document.getElementById('next-btn').disabled = false;
+    };
+    cont.appendChild(btn);
+  });
+}
+
+function nextQuestion() {
+  if (selectedIdx === null) return;
+  scores.push(questions[current].options[selectedIdx].score);
+  current++;
+  if (current < questions.length) {
+    renderQuestion();
+  } else {
+    showResult();
+  }
+}
+
+function showResult() {
+  const total = scores.reduce((a, b) => a + b, 0);
+  const p = profiles.find(pr => total >= pr.min && total <= pr.max);
+  document.getElementById('quiz-view').style.display = 'none';
+  const rv = document.getElementById('result-view');
+  rv.style.display = 'block';
+  rv.innerHTML = `
+    <div class="result-icon">${p.emoji}</div>
+    <div class="result-title" style="color:${p.color}">Perfil ${p.name}</div>
+    <div class="result-sub">${p.sub}</div>
+    <hr class="divider">
+    <div class="result-desc">${p.desc}</div>
+    <div class="tags-label">Instrumentos recomendados</div>
+    <div class="tags">${p.tags.map(t => `<span class="tag" style="background:${p.bgColor};color:${p.color}">${t}</span>`).join('')}</div>
+    <button class="restart-btn" onclick="restart()">Volver a empezar</button>
+    <div class="saving" id="saving-msg">Guardando resultado...</div>
+  `;
+  saveResult(p.name);
+}
+
+function saveResult(perfil) {
+  if (!SCRIPT_URL || SCRIPT_URL.includes("TU_GOOGLE")) return;
+  const params = new URLSearchParams({ perfil, fecha: new Date().toLocaleString('es-AR') });
+  fetch(`${SCRIPT_URL}?${params}`)
+    .then(() => { document.getElementById('saving-msg').textContent = "✓ Resultado guardado"; })
+    .catch(() => { document.getElementById('saving-msg').textContent = ""; });
+}
+
+function restart() {
+  current = 0; scores = []; selectedIdx = null;
+  document.getElementById('result-view').style.display = 'none';
+  document.getElementById('quiz-view').style.display = 'block';
+  renderQuestion();
+}
+
+renderQuestion();
+</script>
+</body>
+</html>
